@@ -22,7 +22,7 @@ module.exports = {
             await newAddress.save();
             res.status(201).json({status: true, message: "Address successfully added"});
         } catch (error) {
-           res.status(500).json({status: false, message: error.message}); 
+        res.status(500).json({status: false, message: error.message}); 
         }
     },
 
@@ -32,7 +32,7 @@ module.exports = {
 
             res.status(200).json(addresses);
         } catch (error) {
-          res.status(500).json({stats: false, message: error.message});  
+        res.status(500).json({stats: false, message: error.message});  
         }
     },
 
@@ -77,7 +77,7 @@ module.exports = {
 
             res.status(200).json(address);
         } catch (error) {
-           res.status(500).json({status: false, message: error.message}); 
+        res.status(500).json({status: false, message: error.message}); 
         }
     } 
 }

@@ -11,15 +11,20 @@ const UserRoute = require("./routes/user");
 const AddressRoute = require("./routes/address");
 const CartRoute = require("./routes/cart");
 const OrderRoute = require("./routes/order");
+const sendEmail = require('./utils/smtp_function');
+const generateOtp = require('./utils/otp_generator');
 
 
 dotenv.config();
 
 mongoose.connect(process.env.MONGOURL)
-.then(() => console.log("Foodly Database Connected"))
+.then(() => console.log("Food-app Database Connected"))
 .catch((err) => console.log(err));
 
-
+/*const otp = generateOtp();
+console.log(otp);
+//190823
+sendEmail('dims3838383@gmail.com', otp)*/
 
 app.use(express.json());                 
 app.use(express.urlencoded({extended: true}));
