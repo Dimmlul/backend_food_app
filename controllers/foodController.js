@@ -10,9 +10,7 @@ module.exports = {
 
         try {
             const newFood = new Food(req.body);
-
             await newFood.save();
-
             res.status(201).json({ status: true, message: "Food has been successfully added" });
         } catch (error) {
             res.status(500).json({ status: false, message: error.message });
@@ -23,7 +21,9 @@ module.exports = {
         const id = req.params.id;
         try {
             const food = await Food.findById(id);
-
+            if (!food) {
+                return res.status(404).json({ status: false, message: "Food not found" });
+            }
             res.status(200).json(food);
         } catch (error) {
             res.status(500).json({ status: false, message: error.message });
@@ -32,43 +32,34 @@ module.exports = {
 
     getRandomFood: async (req, res) => {
         try {
-            let randomFoodList = [];
-    
-            // Check if code is provided in the params
-            if (req.params.code) {
-                randomFoodList = await Food.aggregate([
+            const randomFoodList = req.params.code
+                ? await Food.aggregate([
                     { $match: { code: req.params.code } },
                     { $sample: { size: 3 } },
-                    { $project: {  __v: 0 } }
-                ]);
-            }
-            
-            // If no code provided in params or no Foods match the provided code
-            if (!randomFoodList.length) {
-                randomFoodList = await Food.aggregate([
+                    { $project: { __v: 0 } }
+                ])
+                : await Food.aggregate([
                     { $sample: { size: 5 } },
-                    { $project: {  __v: 0 } }
+                    { $project: { __v: 0 } }
                 ]);
+
+            if (randomFoodList.length === 0) {
+                return res.status(404).json({ status: false, message: 'No Foods found' });
             }
-    
-            // Respond with the results
-            if (randomFoodList.length) {
-                res.status(200).json(randomFoodList);
-            } else {
-                res.status(404).json({status: false, message: 'No Foods found' });
-            }
+
+            res.status(200).json(randomFoodList);
         } catch (error) {
-            res.status(500).json(error);
+            res.status(500).json({ status: false, message: error.message });
         }
     },
 
-    //Restaurant Menu
     getFoodsByRestaurant: async (req, res) => {
         const id = req.params.id;
-
         try {
             const foods = await Food.find({ restaurant: id });
-
+            if (foods.length === 0) {
+                return res.status(404).json({ status: false, message: "No foods found for this restaurant" });
+            }
             res.status(200).json(foods);
         } catch (error) {
             res.status(500).json({ status: false, message: error.message });
@@ -84,7 +75,7 @@ module.exports = {
             ]);
 
             if (foods.length === 0) {
-                return res.status(200).json([]);
+                return res.status(404).json({ status: false, message: "No foods found for this category and code" });
             }
 
             res.status(200).json(foods);
@@ -93,60 +84,53 @@ module.exports = {
         }
     },
 
-
     searchFoods: async (req, res) => {
-        const search = req.params.search;
-
+        const search = req.params.search.toLowerCase(); // Convert search term to lowercase
+    
         try {
             const results = await Food.aggregate([
                 {
-                    $search: {
-                        index: "foods",
-                        text: {
-                            query: search,
-                            path: {
-                                wildcard: "*"
-                            }
-                        }
+                    $match: {
+                        $or: [
+                            { category: { $regex: search, $options: 'i' } }, // Match category
+                            { foodTags: { $elemMatch: { $regex: search, $options: 'i' } } }, // Match foodTags array
+                        ]
                     }
                 }
-            ])
-
+            ]);
+    
             res.status(200).json(results);
         } catch (error) {
             res.status(500).json({ status: false, message: error.message });
         }
     },
+    
 
     getRandomFoodsByCategoryAndCode: async (req, res) => {
         const { category, code } = req.params;
-
         try {
-            let foods;
-
-            foods = await Food.aggregate([
+            let foods = await Food.aggregate([
                 { $match: { category: category, code: code, isAvailable: true } },
-                { $sample: { size: 10 } },
-            ])
+                { $sample: { size: 10 } }
+            ]);
 
             if (!foods || foods.length === 0) {
                 foods = await Food.aggregate([
                     { $match: { code: code, isAvailable: true } },
-                    { $sample: { size: 10 } },
-                ])
-            } else if (!foods || foods.length === 0) {
+                    { $sample: { size: 10 } }
+                ]);
+            }
+
+            if (!foods || foods.length === 0) {
                 foods = await Food.aggregate([
                     { $match: { isAvailable: true } },
-                    { $sample: { size: 10 } },
-                ])
+                    { $sample: { size: 10 } }
+                ]);
             }
+
             res.status(200).json(foods);
         } catch (error) {
-            res.status(500).json({ status: false, message: error.message })
+            res.status(500).json({ status: false, message: error.message });
         }
     }
-
-
-
-
 };
